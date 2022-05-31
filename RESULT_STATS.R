@@ -25,12 +25,25 @@ SELECT PEDDTEMIS,SUM(PDPUNITLIQUIDO*PDPQTDADE)VRVENDA
    GROUP BY 1
 
 ") 
-
+## filter weekends
 result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7))%>% View()
 
 
-result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7))%>% 
- roll  %>% View()
+## moving average
+result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  mutate(AVG=rollmean(VRVENDA,3,fill=NA)) %>% View()
+
+
+## chart
+result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  mutate(AVG=round(rollmean(VRVENDA,5,fill=NA),0)) %>% 
+    ggplot(.,aes(PEDDTEMIS,AVG)) + geom_line() + geom_text(aes(label=format(AVG,big.mark=","))) +
+  scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
+   theme(panel.background = )
+
+
+
+
 
 
 
