@@ -2,6 +2,7 @@ library(DBI)
 library(tidyverse)
 library(lubridate)
 library(magrittr)
+library(reshape2)
 library(zoo)
 
 con2 <- dbConnect(odbc::odbc(), "reproreplica", timeout = 10)
@@ -11,35 +12,75 @@ result_day <- dbGetQuery(con2,"
 
 WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
 
-SETOR AS (SELECT ZOCODIGO FROM ZONA WHERE ZOCODIGO IN (20,21,22,23,24,25,28)),
+       CLI AS (SELECT DISTINCT C.CLICODIGO,
+                       CLINOMEFANT,
+                        ENDCODIGO,
+                         SETOR
+                          FROM CLIEN C
+                           LEFT JOIN (SELECT CLICODIGO,E.ZOCODIGO,ZODESCRICAO SETOR,ENDCODIGO FROM ENDCLI E
+                            LEFT JOIN (SELECT ZOCODIGO,ZODESCRICAO FROM ZONA WHERE ZOCODIGO IN (20,21,22,23,24,25,28))Z ON E.ZOCODIGO=Z.ZOCODIGO WHERE ENDFAT='S')A ON C.CLICODIGO=A.CLICODIGO
+                             WHERE CLICLIENTE='S'),
 
-ENDE AS (SELECT ENDCODIGO,CLICODIGO FROM ENDCLI INNER JOIN SETOR ON ENDCLI.ZOCODIGO=SETOR.ZOCODIGO WHERE ENDFAT='S'),
+         PED AS (SELECT ID_PEDIDO,
+                         P.CLICODIGO,
+                          SETOR,
+                           PEDDTEMIS 
+                            FROM PEDID P
+                             INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
+                              INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
+                               WHERE PEDDTEMIS BETWEEN '01.06.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
 
-PED AS (SELECT ID_PEDIDO,PEDID.CLICODIGO,PEDDTEMIS FROM PEDID INNER JOIN FIS ON PEDID.FISCODIGO1=FIS.FISCODIGO
- LEFT JOIN ENDE ON PEDID.CLICODIGO=ENDE.CLICODIGO AND PEDID.ENDCODIGO=ENDE.ENDCODIGO
-  WHERE PEDDTEMIS BETWEEN '01.05.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
+        SELECT PEDDTEMIS,
+                CLICODIGO,
+                 SETOR,
+                  SUM(PDPUNITLIQUIDO*PDPQTDADE)VRVENDA 
+                   FROM PDPRD PD
+                    INNER JOIN PED P ON PD.ID_PEDIDO=P.ID_PEDIDO
+                     GROUP BY 1,2,3")
 
-SELECT PEDDTEMIS,SUM(PDPUNITLIQUIDO*PDPQTDADE)VRVENDA 
- FROM PDPRD PD
-  INNER JOIN PED P ON PD.ID_PEDIDO=P.ID_PEDIDO
-   GROUP BY 1
+View(result_day)
 
-") 
+result_day %>% summarize(v=sum(VRVENDA))
+
 ## filter weekends
 result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7))%>% View()
 
 
+result_day %>% group_by(PEDDTEMIS) %>% summarize(v=sum(VRVENDA)) %>% View()
+
+
+result_day %>% group_by(PEDDTEMIS) %>% summarize(v=sum(VRVENDA)) %>% View()
+
+
 ## moving average
-result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
-  mutate(AVG=rollmean(VRVENDA,3,fill=NA)) %>% View()
+
+## method 1 zoo
+result <- result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  group_by(PEDDTEMIS) %>% summarize(V=sum(VRVENDA)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(V,3,fill=NA)) 
+
+View(result)
+
+
+## method 2 function
+moving_average <- function(x, n = 3) {    
+  stats::filter(x, rep(1 / n, n), sides = 2)
+}
+
+ result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  group_by(PEDDTEMIS) %>% summarize(V=sum(VRVENDA)) %>% as.data.frame() %>% mutate(AVG=moving_average(V)) 
+
 
 
 ## chart
-result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
-  mutate(AVG=round(rollmean(VRVENDA,5,fill=NA),0)) %>% 
-    ggplot(.,aes(PEDDTEMIS,AVG)) + geom_line() + geom_text(aes(label=format(AVG,big.mark=","))) +
+result %>% melt(id.vars="PEDDTEMIS") %>% 
+    ggplot(.,aes(x=PEDDTEMIS,y=AVG)) + geom_line() +
+  geom_text(aes(label=format(AVG,big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
-   theme(panel.background = )
+   theme(panel.background = element_rect(fill = "#0c1839"),
+         panel.grid.major.y = element_blank(),
+         panel.grid.minor.y = element_blank(),
+         panel.grid.minor.x = element_blank(),
+         panel.grid.major.x = element_line(colour = "#15295f"))
 
 
 
