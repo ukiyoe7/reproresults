@@ -28,7 +28,7 @@ WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
                             FROM PEDID P
                              INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
                               INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
-                               WHERE PEDDTEMIS BETWEEN '01.06.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
+                               WHERE PEDDTEMIS BETWEEN '20.06.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
 
         SELECT PEDDTEMIS,
                 CLICODIGO,
@@ -73,17 +73,107 @@ moving_average <- function(x, n = 3) {
 
 ## chart
 result %>% melt(id.vars="PEDDTEMIS") %>% 
-    ggplot(.,aes(x=PEDDTEMIS,y=AVG)) + geom_line() +
-  geom_text(aes(label=format(AVG,big.mark=","))) +
+    ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
+  geom_text(aes(label=format(value,big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
    theme(panel.background = element_rect(fill = "#0c1839"),
          panel.grid.major.y = element_blank(),
          panel.grid.minor.y = element_blank(),
          panel.grid.minor.x = element_blank(),
-         panel.grid.major.x = element_line(colour = "#15295f"))
+         panel.grid.major.x = element_line(colour = "#15295f"),
+         legend.position = "top")
+
+
+##=========================================================================================
+## CALCULATE MONTHLY AVERAGE
 
 
 
+result_lens <- dbGetQuery(con2,"
+
+WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
+
+       CLI AS (SELECT DISTINCT C.CLICODIGO,
+                       CLINOMEFANT,
+                        ENDCODIGO,
+                         SETOR
+                          FROM CLIEN C
+                           LEFT JOIN (SELECT CLICODIGO,E.ZOCODIGO,ZODESCRICAO SETOR,ENDCODIGO FROM ENDCLI E
+                            LEFT JOIN (SELECT ZOCODIGO,ZODESCRICAO FROM ZONA WHERE ZOCODIGO IN (20,21,22,23,24,25,28))Z ON E.ZOCODIGO=Z.ZOCODIGO WHERE ENDFAT='S')A ON C.CLICODIGO=A.CLICODIGO
+                             WHERE CLICLIENTE='S'),
+
+         PED AS (SELECT ID_PEDIDO,
+                         P.CLICODIGO,
+                          SETOR,
+                           PEDDTEMIS 
+                            FROM PEDID P
+                             INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
+                              INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
+                               WHERE PEDDTEMIS BETWEEN '01.07.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N')),
+            
+                               
+        PROD AS  (SELECT PROCODIGO FROM PRODU WHERE PROTIPO IN ('P','F','E')) ,
+        
+        VLX AS  (SELECT PROCODIGO FROM PRODU WHERE MARCODIGO=57),
+        
+        KDK AS  (SELECT PROCODIGO FROM PRODU WHERE MARCODIGO=24),
+        
+        LA AS  (SELECT PROCODIGO FROM PRODU WHERE GR1CODIGO=2),
+        
+        TRANS AS  (SELECT PROCODIGO FROM PRODU WHERE (PRODESCRICAO LIKE '%TGEN8%' OR PRODESCRICAO LIKE '%TRANS%'))  
+
+
+        SELECT PEDDTEMIS,
+                CLICODIGO,
+                 PR.PROCODIGO,
+                  PDPDESCRICAO,
+                   SETOR,
+                    CASE 
+                     WHEN VX.PROCODIGO IS NOT NULL THEN 'VARILUX'
+                      WHEN KD.PROCODIGO IS NOT NULL THEN 'KODAK' 
+                       ELSE '' END MARCA,
+                        IIF (T.PROCODIGO IS NOT NULL,'TRANSITIONS','') TRANSITIONS,
+                         CASE 
+                          WHEN L.PROCODIGO IS NOT NULL THEN 'LA'
+                            ELSE '' END TIPO,
+                             SUM(PDPQTDADE)QTD,
+                              SUM(PDPUNITLIQUIDO*PDPQTDADE)VRVENDA 
+                               FROM PDPRD PD
+                                INNER JOIN PED P ON PD.ID_PEDIDO=P.ID_PEDIDO
+                                 INNER JOIN PROD PR ON PD.PROCODIGO=PR.PROCODIGO
+                                  LEFT JOIN VLX VX ON PD.PROCODIGO=VX.PROCODIGO
+                                   LEFT JOIN KDK KD ON PD.PROCODIGO=KD.PROCODIGO
+                                    LEFT JOIN TRANS T ON PD.PROCODIGO=T.PROCODIGO
+                                     LEFT JOIN LA L ON PD.PROCODIGO=L.PROCODIGO
+                                      GROUP BY 1,2,3,4,5,6,7,8")
+
+
+View(result_lens)
+
+
+## TOTAL LENS
+lens <- result_lens %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  group_by(PEDDTEMIS) %>% summarize(qtd=sum(QTD)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(qtd,3,fill=NA)) 
+
+
+View(lens)
+
+
+
+## TOTAL VARILUX
+lens_vlx <- result_lens %>% filter(MARCA=='VARILUX') %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  group_by(PEDDTEMIS) %>% summarize(qtd=sum(QTD)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(qtd,3,fill=NA)) 
+
+
+View(lens_vlx)
+
+
+## TOTAL KODAK
+lens_kdk <- result_lens %>% filter(str_detect(MARCA,"KODAK")) %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
+  group_by(PEDDTEMIS) %>% summarize(qtd=sum(QTD)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(qtd,3,fill=NA)) 
+
+
+View(lens_kdk)
 
 
 
