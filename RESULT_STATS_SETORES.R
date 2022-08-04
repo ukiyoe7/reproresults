@@ -46,21 +46,23 @@ result_setor1 <- result_day_setores %>%
                       group_by(PEDDTEMIS) %>% 
                        summarize(V=sum(VRVENDA)) %>% 
                         as.data.frame() %>% 
-                         mutate(AVG=rollmeanr(V,7,fill=NA))  
+                         mutate(AVG=round(rollmeanr(V,7,fill=NA),0))  
 
 View(result_setores)
 
 ## chart
 result_setor1 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+        labs(title = "SETOR 1") +
+        xlab("EMISSÃO") + ylab("VENDAS")
 
 
 result_setor2 <- result_day_setores %>% 
@@ -76,14 +78,16 @@ result_setor2 <- result_day_setores %>%
 ## chart
 result_setor2 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+  labs(title = "SETOR 2") +
+  xlab("EMISSÃO") + ylab("VENDAS")
 
 
 result_setor3 <- result_day_setores %>% 
@@ -99,14 +103,16 @@ result_setor3 <- result_day_setores %>%
 ## chart
 result_setor3 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+  labs(title = "SETOR 3") +
+  xlab("EMISSÃO") + ylab("VENDAS")
 
 
 result_setor4 <- result_day_setores %>% 
@@ -122,14 +128,16 @@ result_setor4 <- result_day_setores %>%
 ## chart
 result_setor4 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+  labs(title = "SETOR 4") +
+  xlab("EMISSÃO") + ylab("VENDAS")
 
 
 result_setor5 <- result_day_setores %>% 
@@ -145,14 +153,16 @@ result_setor5 <- result_day_setores %>%
 ## chart
 result_setor5 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+  labs(title = "SETOR 5") +
+  xlab("EMISSÃO") + ylab("VENDAS")
 
 
 
@@ -169,11 +179,13 @@ result_setor6 <- result_day_setores %>%
 ## chart
 result_setor6 %>% melt(id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
   theme(panel.background = element_rect(fill = "#0c1839"),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(colour = "#15295f"),
-        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff"))
+        legend.position = "top") + scale_colour_manual(values = c("#5783ad", "#00ffff")) +
+  labs(title = "SETOR 6") +
+  xlab("EMISSÃO") + ylab("VENDAS")
