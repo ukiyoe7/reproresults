@@ -28,7 +28,7 @@ WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
                             FROM PEDID P
                              INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
                               INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
-                               WHERE PEDDTEMIS BETWEEN '20.07.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
+                               WHERE PEDDTEMIS >= DATEADD(-30 DAY TO CURRENt_DATE ) AND PEDDTEMIS<='YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
 
         SELECT PEDDTEMIS,
                 CLICODIGO,
@@ -56,7 +56,7 @@ result_day %>% group_by(PEDDTEMIS) %>% summarize(v=sum(VRVENDA)) %>% View()
 
 ## method 1 zoo
 result <- result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
-  group_by(PEDDTEMIS) %>% summarize(V=sum(VRVENDA)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(V,5,fill=NA)) 
+  group_by(PEDDTEMIS) %>% summarize(V=sum(VRVENDA)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(V,7,fill=NA)) 
 
 View(result)
 
@@ -74,7 +74,7 @@ moving_average <- function(x, n = 3) {
 ## chart
 result %>% melt(id.vars="PEDDTEMIS") %>% 
     ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(value,big.mark=","))) +
+  geom_text(aes(label=format(format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
    theme(panel.background = element_rect(fill = "#0c1839"),
          panel.grid.major.y = element_blank(),
@@ -116,16 +116,20 @@ WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
                           FROM CLIEN C
                            LEFT JOIN (SELECT CLICODIGO,E.ZOCODIGO,ZODESCRICAO SETOR,ENDCODIGO FROM ENDCLI E
                             LEFT JOIN (SELECT ZOCODIGO,ZODESCRICAO FROM ZONA WHERE ZOCODIGO IN (20,21,22,23,24,25,28))Z ON E.ZOCODIGO=Z.ZOCODIGO WHERE ENDFAT='S')A ON C.CLICODIGO=A.CLICODIGO
-                             WHERE CLICLIENTE='S'),
+                             WHERE CLICLIENTE='S' ),
 
          PED AS (SELECT ID_PEDIDO,
-                         P.CLICODIGO,
-                          SETOR,
-                           PEDDTEMIS 
-                            FROM PEDID P
-                             INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
-                              INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
-                               WHERE PEDDTEMIS BETWEEN '25.06.2022' AND 'YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N')),
+                         TPCODIGO,
+                          P.CLICODIGO,
+                           SETOR,
+                            PEDDTEMIS 
+                             FROM PEDID P
+                              INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
+                               INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
+                                WHERE  
+                                 PEDDTEMIS >= DATEADD(-30 DAY TO CURRENt_DATE ) AND 
+                                  PEDDTEMIS<='YESTERDAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N')
+                                   ),
             
                                
         PROD AS  (SELECT PROCODIGO FROM PRODU WHERE PROTIPO IN ('P','F','E')) ,
@@ -170,7 +174,7 @@ View(result_lens)
 
 ## TOTAL LENS
 lens <- result_lens %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
-  group_by(PEDDTEMIS) %>% summarize(qtd=sum(QTD)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(qtd,5,fill=NA)) 
+  group_by(PEDDTEMIS) %>% summarize(qtd=sum(QTD)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(qtd,7,fill=NA)) 
 
 
 View(lens)
