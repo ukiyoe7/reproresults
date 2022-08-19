@@ -74,7 +74,7 @@ moving_average <- function(x, n = 3) {
 ## chart
 result %>% melt(id.vars="PEDDTEMIS") %>% 
     ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
-  geom_text(aes(label=format(format(round(value,0),big.mark=","))) +
+  geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
    theme(panel.background = element_rect(fill = "#0c1839"),
          panel.grid.major.y = element_blank(),
