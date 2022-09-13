@@ -55,12 +55,19 @@ result_day %>% group_by(PEDDTEMIS) %>% summarize(v=sum(VRVENDA)) %>% View()
 ## moving average
 
 ## method 1 zoo
-result <- result_day %>% mutate(WKD=wday(PEDDTEMIS)) %>% filter(!WKD %in% c(1,7)) %>% as.data.frame() %>% 
-  group_by(PEDDTEMIS) %>% summarize(V=sum(VRVENDA)) %>% as.data.frame() %>% mutate(AVG=rollmeanr(V,7,fill=NA)) 
+result <- result_day %>% 
+           mutate(WKD=wday(PEDDTEMIS)) %>% 
+            filter(!WKD %in% c(1,7)) %>% 
+             filter(PEDDTEMIS!=as.Date('2022-09-07')) %>% 
+              as.data.frame() %>% 
+               group_by(PEDDTEMIS) %>% 
+                summarize(V=sum(VRVENDA)) %>% 
+                 as.data.frame() %>% 
+                  mutate(AVG=rollmeanr(V,7,fill=NA)) 
 
-View(result)
+                 View(result)
 
-
+                 
 ## method 2 function
 moving_average <- function(x, n = 3) {    
   stats::filter(x, rep(1 / n, n), sides = 2)

@@ -4,7 +4,6 @@ library(lubridate)
 library(magrittr)
 library(reshape2)
 library(zoo)
-
 con2 <- dbConnect(odbc::odbc(), "reproreplica", timeout = 10)
 
 
@@ -46,12 +45,12 @@ result_setor1 <- result_day_setores %>%
                       group_by(PEDDTEMIS) %>% 
                        summarize(V=sum(VRVENDA)) %>% 
                         as.data.frame() %>% 
-                         mutate(AVG=round(rollmeanr(V,7,fill=NA),0))  
+                         mutate(MEDIAMOVEL=round(rollmeanr(V,7,fill=NA),0))  
 
 View(result_setores)
 
 ## chart
-result_setor1 %>% melt(id.vars="PEDDTEMIS") %>% 
+result_setor1 %>% melt(.,id.vars="PEDDTEMIS") %>% 
   ggplot(.,aes(x=PEDDTEMIS,y=value,color=variable)) + geom_line() +
   geom_text(aes(label=format(round(value,0),big.mark=","))) +
   scale_x_datetime(date_breaks = "day",date_labels = "%d/%m") +
