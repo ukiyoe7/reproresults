@@ -35,7 +35,7 @@ WITH FIS AS (SELECT FISCODIGO FROM TBFIS WHERE FISTPNATOP IN ('V','R','SR')),
                               FROM PEDID P
                                INNER JOIN FIS F ON P.FISCODIGO1=F.FISCODIGO
                                 INNER JOIN CLI C ON P.CLICODIGO=C.CLICODIGO AND P.ENDCODIGO=C.ENDCODIGO
-                                 WHERE PEDDTEMIS BETWEEN DATEADD(-15 DAY TO CURRENT_DATE) AND 'TODAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
+                                 WHERE PEDDTEMIS BETWEEN DATEADD(-30 DAY TO CURRENT_DATE) AND 'TODAY' AND PEDSITPED<>'C' AND PEDLCFINANC IN ('S', 'L','N'))
 
         SELECT PEDDTEMIS,
                 CLICODIGO,
@@ -53,13 +53,14 @@ View(result_map)
 
 heatmap <- result_map %>% mutate(WKD=wday(PEDDTEMIS)) %>% 
   filter(!WKD %in% c(1,7)) %>%  
-   dcast(CLIENTE ~ PEDDTEMIS,value.var = "VRVENDA",fun.aggregate=sum) %>% 
-    rowwise() %>%  
-     mutate(TOTALS= rowSums(across(where(is.numeric)),na.rm = TRUE))  %>% 
-      mutate(across(where(is.numeric), na_if, 0)) %>%
-       rowwise() %>%  
-        mutate(TOTALM= rowMeans(across(2:(ncol(.)-1)),na.rm = TRUE)) %>% 
-         arrange(desc(TOTALS))
+   filter(PEDDTEMIS!=as.Date('2022-09-07')) %>%
+    dcast(CLIENTE ~ PEDDTEMIS,value.var = "VRVENDA",fun.aggregate=sum) %>% 
+     rowwise() %>%  
+      mutate(TOTALS= rowSums(across(where(is.numeric)),na.rm = TRUE))  %>% 
+       mutate(across(where(is.numeric), na_if, 0)) %>%
+        rowwise() %>%  
+         mutate(TOTALM= rowMeans(across(2:(ncol(.)-1)),na.rm = TRUE)) %>% 
+          arrange(desc(TOTALS))
 
 
 
@@ -67,8 +68,32 @@ View(heatmap)
 
 
 range_write("1PEzq5MAD24WAINYDR0TeO9VvBI3XQwSaSKhRUlqBzpc",data=heatmap ,
-              sheet = "15 DIAS",
+              sheet = "30 DIAS",
                range = "A1",reformat = FALSE) 
+
+
+
+heatmap2 <- result_map %>%
+             mutate(WKD=wday(PEDDTEMIS)) %>% 
+              filter(PEDDTEMIS>=floor_date(Sys.Date() %m-% days(15), 'day')) %>% 
+               filter(!WKD %in% c(1,7)) %>%  
+                 filter(PEDDTEMIS!=as.Date('2022-09-07')) %>%
+                  dcast(CLIENTE ~ PEDDTEMIS,value.var = "VRVENDA",fun.aggregate=sum) %>% 
+                   rowwise() %>%  
+                    mutate(TOTALS= rowSums(across(where(is.numeric)),na.rm = TRUE))  %>% 
+                     mutate(across(where(is.numeric), na_if, 0)) %>%
+                      rowwise() %>%  
+                       mutate(TOTALM= rowMeans(across(2:(ncol(.)-1)),na.rm = TRUE)) %>% 
+                        arrange(desc(TOTALS))
+
+
+
+View(heatmap2)
+
+
+range_write("1PEzq5MAD24WAINYDR0TeO9VvBI3XQwSaSKhRUlqBzpc",data=heatmap2 ,
+            sheet = "15 DIAS",
+            range = "A1",reformat = FALSE) 
 
 ## CREATE MAP
 
