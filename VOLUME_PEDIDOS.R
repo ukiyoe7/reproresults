@@ -49,12 +49,23 @@ vol_pedidos %>%
 vol_pedidos %>%
   mutate(WKD=wday(PEDDTEMIS)) %>% 
    filter(!WKD %in% c(1,7)) %>% 
-    filter(VENDA!=1) %>% 
-   group_by(PEDDTEMIS,WKD) %>%
-    summarize(q=n_distinct(ID_PEDIDO)) %>% 
-     as.data.frame() %>% 
-      mutate(MEDIAMOVEL=round(rollmeanr(q,7,fill=NA),0)) %>% 
-       View()
+    filter(VENDA==1) %>% 
+     group_by(PEDDTEMIS) %>%
+      summarize(q=n_distinct(ID_PEDIDO)) %>% 
+       as.data.frame() %>% 
+        mutate(MEDIAMOVEL=round(rollmeanr(q,7,fill=NA),0)) %>% 
+         View()
+
+
+vol_pedidos %>%
+  mutate(WKD=wday(PEDDTEMIS)) %>% 
+   filter(!WKD %in% c(1,7)) %>% 
+    filter(VENDA==1) %>% 
+     group_by(SETOR,PEDDTEMIS) %>%
+      summarize(q=n_distinct(ID_PEDIDO)) %>% 
+       as.data.frame() %>% 
+        mutate(MEDIAMOVEL=round(rollmeanr(q,7,fill=NA),0)) %>% 
+         View()
 
 
 
